@@ -1,0 +1,28 @@
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "biteboxa",
+          "configurations": {
+            "web": "1:1056904160552:web:c7801d5fd530413278dc1d"
+          }
+        }
+      }
+    }
+  }
+}
