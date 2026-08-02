@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../config/app_config.dart';
 import '../../config/app_theme.dart';
 import '../../providers/store_provider.dart';
+import '../widgets/common.dart';
 import 'dashboard_screen.dart';
 import 'store_detail_screen.dart';
 
@@ -57,20 +58,7 @@ class _Splash extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, AppColors.accent],
-                ),
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-              ),
-              child: const Icon(
-                Icons.lunch_dining_rounded,
-                color: Colors.white,
-                size: 40,
-              ),
-            ),
+            const AppLogo(size: 84, radius: AppRadius.lg),
             const SizedBox(height: AppSpacing.md),
             Text(
               AppConfig.businessName,

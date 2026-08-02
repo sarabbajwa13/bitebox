@@ -81,20 +81,7 @@ class _Logo extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, AppColors.accent],
-                ),
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              child: const Icon(
-                Icons.lunch_dining_rounded,
-                color: Colors.white,
-                size: 22,
-              ),
-            ),
+            const AppLogo(size: 38),
             const SizedBox(width: AppSpacing.sm),
             Text(
               AppConfig.businessName,

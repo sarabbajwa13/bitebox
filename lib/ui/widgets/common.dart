@@ -4,6 +4,26 @@ import '../../config/app_config.dart';
 import '../../config/app_theme.dart';
 import '../../models/order.dart';
 
+/// App icon/logo (assets/images/app_logo.png) — brand ke liye reusable.
+class AppLogo extends StatelessWidget {
+  final double size;
+  final double radius;
+  const AppLogo({super.key, this.size = 40, this.radius = AppRadius.md});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Image.asset(
+        'assets/images/app_logo.png',
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+}
+
 /// Format a price with the configured currency symbol.
 String formatPrice(num value) {
   final s = value == value.roundToDouble()

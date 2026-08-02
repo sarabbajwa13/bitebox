@@ -6,6 +6,7 @@ import '../../config/app_config.dart';
 import '../../config/app_strings.dart';
 import '../../config/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../widgets/common.dart';
 
 /// Firebase Phone OTP login. Login hote hi `Navigator.pop(true)` — cart flow
 /// isi ka intezaar karta hai.
@@ -68,22 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primary, AppColors.accent],
-                      ),
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
-                    ),
-                    child: const Icon(
-                      Icons.lunch_dining_rounded,
-                      color: Colors.white,
-                      size: 36,
-                    ),
-                  ),
-                ),
+                const Center(child: AppLogo(size: 76, radius: AppRadius.lg)),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
                   AppStrings.loginTitle,
