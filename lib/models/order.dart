@@ -86,7 +86,13 @@ class OrderLine {
 
 /// A placed order (Firestore-backed).
 class CustomerOrder {
+  /// Firestore document id — globally unique (auto-generated). Navigation +
+  /// status updates isi pe hote hain.
   final String id;
+
+  /// Short human-readable order number (display only, e.g. "261223"). Duplicate
+  /// ho bhi jaye to sirf cosmetic — `id` unique rehta hai.
+  final String orderNumber;
   final String storeId;
   final String storeName;
   final String customerId;
@@ -105,6 +111,7 @@ class CustomerOrder {
 
   const CustomerOrder({
     required this.id,
+    this.orderNumber = '',
     required this.storeId,
     required this.storeName,
     required this.customerId,
@@ -124,6 +131,7 @@ class CustomerOrder {
   bool get hasLocation => deliveryLat != null && deliveryLng != null;
 
   Map<String, dynamic> toMap() => {
+    'orderNumber': orderNumber,
     'storeId': storeId,
     'storeName': storeName,
     'customerId': customerId,
@@ -142,6 +150,8 @@ class CustomerOrder {
   factory CustomerOrder.fromMap(String id, Map<String, dynamic> map) {
     return CustomerOrder(
       id: id,
+      // Old orders (jinme orderNumber field nahi) → doc id hi dikhado.
+      orderNumber: (map['orderNumber'] ?? id) as String,
       storeId: (map['storeId'] ?? '') as String,
       storeName: (map['storeName'] ?? '') as String,
       customerId: (map['customerId'] ?? '') as String,

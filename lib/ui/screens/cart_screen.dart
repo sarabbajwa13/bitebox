@@ -10,6 +10,7 @@ import '../../config/app_config.dart';
 import '../../config/app_strings.dart';
 import '../../config/app_theme.dart';
 import '../../data/repositories/data_repository.dart';
+import '../../models/cart_item.dart';
 import '../../models/order.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
@@ -180,7 +181,10 @@ class _CartScreenState extends State<CartScreen> {
 
       final now = DateTime.now();
       final order = CustomerOrder(
-        id: now.millisecondsSinceEpoch.toString().substring(7),
+        // Doc id repo me Firestore auto-generate karega (unique). Yahan sirf
+        // readable order number banate hain (display ke liye).
+        id: '',
+        orderNumber: now.millisecondsSinceEpoch.toString().substring(7),
         storeId: cart.storeId ?? '',
         storeName: cart.storeName ?? '',
         customerId: auth.uid ?? '',
@@ -417,6 +421,82 @@ class _CartScreenState extends State<CartScreen> {
   }
 }
 
+/// One line in the cart — name + total on top, unit price + stepper below.
+class _CartLineTile extends StatelessWidget {
+  final CartItem line;
+  final String storeName;
+  const _CartLineTile({required this.line, required this.storeName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Name + line total.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: VegBadge(isVeg: line.item.isVeg),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  line.variant.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                formatPrice(line.lineTotal),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          // Unit price (name ke just neeche) + stepper (thoda neeche).
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${formatPrice(line.variant.price)} each',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
+                child: QuantityStepper(
+                  quantity: line.quantity,
+                  onAdd: () => context.read<CartProvider>().add(
+                    line.item,
+                    line.variant,
+                    storeName,
+                  ),
+                  onRemove: () => context
+                      .read<CartProvider>()
+                      .decrement(line.item, line.variant),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CartList extends StatelessWidget {
   final CartProvider cart;
   const _CartList({required this.cart});
@@ -448,52 +528,10 @@ class _CartList extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          for (final line in cart.items) ...[
-            Row(
-              children: [
-                VegBadge(isVeg: line.item.isVeg),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        line.variant.name,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      Text(
-                        formatPrice(line.variant.price),
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                QuantityStepper(
-                  quantity: line.quantity,
-                  onAdd: () => context.read<CartProvider>().add(
-                    line.item,
-                    line.variant,
-                    cart.storeName ?? '',
-                  ),
-                  onRemove: () => context
-                      .read<CartProvider>()
-                      .decrement(line.item, line.variant),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                SizedBox(
-                  width: 64,
-                  child: Text(
-                    formatPrice(line.lineTotal),
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: AppSpacing.lg),
+          for (int i = 0; i < cart.items.length; i++) ...[
+            _CartLineTile(line: cart.items[i], storeName: cart.storeName ?? ''),
+            if (i != cart.items.length - 1)
+              const Divider(height: AppSpacing.lg),
           ],
         ],
       ),

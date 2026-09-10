@@ -32,11 +32,11 @@ class FirebaseRepository implements DataRepository {
 
   @override
   Future<CustomerOrder> placeOrder(CustomerOrder order) async {
-    await _db
-        .collection(AppConfig.ordersCollection)
-        .doc(order.id)
-        .set(order.toMap());
-    return order;
+    // Firestore auto-generated doc id — globally unique, kabhi overwrite nahi.
+    final ref = _db.collection(AppConfig.ordersCollection).doc();
+    await ref.set(order.toMap());
+    // Real doc id ke saath order wapas (navigation/tracking isi id pe).
+    return CustomerOrder.fromMap(ref.id, order.toMap());
   }
 
   @override

@@ -103,7 +103,7 @@ class _Summary extends StatelessWidget {
               const Icon(Icons.receipt_long_rounded,
                   size: 18, color: AppColors.textSecondary),
               const SizedBox(width: 6),
-              Text('Order #${order.id}',
+              Text('Order #${order.orderNumber}',
                   style: const TextStyle(fontWeight: FontWeight.w700)),
             ],
           ),

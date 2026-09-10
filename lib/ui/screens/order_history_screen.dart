@@ -131,7 +131,7 @@ class _OrderCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '#${order.id} · ${order.totalQuantity} ${AppStrings.items}',
+                  '#${order.orderNumber} · ${order.totalQuantity} ${AppStrings.items}',
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 13,
