@@ -8,6 +8,7 @@ import '../../models/store.dart';
 import '../../providers/store_provider.dart';
 import '../widgets/app_header.dart';
 import '../widgets/common.dart';
+import '../widgets/policy_footer.dart';
 import 'store_detail_screen.dart';
 
 /// Landing dashboard — radius-filtered store listing.
@@ -47,7 +48,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       appBar: const AppHeader(),
       body: RefreshIndicator(
-        onRefresh: () => provider.loadStores(),
+        onRefresh: () => provider.reload(),
         child: ListView(
           padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
           children: [
@@ -65,10 +66,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               )
             else if (provider.error != null)
               MaxWidth(child: _ErrorState(message: provider.error!))
+            else if (provider.locationDenied)
+              MaxWidth(
+                child: _LocationOffState(
+                  onRetry: () => provider.reload(),
+                  diagnostic: provider.locationError,
+                ),
+              )
             else if (stores.isEmpty)
               const MaxWidth(child: _EmptyState())
             else
               MaxWidth(child: _StoreGrid(stores: stores, provider: provider)),
+            const PolicyFooter(),
           ],
         ),
       ),
@@ -358,6 +367,64 @@ class _EmptyState extends StatelessWidget {
           const Text(
             AppStrings.noStoresSubtitle,
             style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LocationOffState extends StatelessWidget {
+  final VoidCallback onRetry;
+  final String? diagnostic;
+  const _LocationOffState({required this.onRetry, this.diagnostic});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.location_off_rounded,
+            size: 56,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            AppStrings.locationOffTitle,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Text(
+              AppStrings.locationOffSubtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          if (diagnostic != null && diagnostic!.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              child: Text(
+                diagnostic!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.danger,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: AppSpacing.lg),
+          ElevatedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text(AppStrings.retry),
           ),
         ],
       ),

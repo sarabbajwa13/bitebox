@@ -14,10 +14,11 @@ class AppConfig {
   static const String ordersCollection = 'orders';
 
   /// ----- Location / radius -----
-  /// Customer ki configured location (store ke paas — store hamesha radius me
-  /// dikhe). Baad me real GPS pe switch easy.
-  static const double userLat = 28.6139;
-  static const double userLng = 77.2090;
+  /// Customer ki location ab **real GPS** se aati hai
+  /// ([LocationService.fetchCurrentLocation]) — koi hardcoded user location
+  /// nahi. Ye sirf map-center fallback hai jab store ke apne lat/lng missing ho.
+  static const double fallbackLat = 28.6139;
+  static const double fallbackLng = 77.2090;
 
   /// Agar store me radius na ho to default.
   static const double defaultStoreRadiusKm = 5.0;

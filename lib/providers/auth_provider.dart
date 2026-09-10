@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
@@ -15,6 +17,14 @@ class AuthProvider extends ChangeNotifier {
   String? _verificationId;
   int? _resendToken;
 
+  /// Resend/Send cooldown — OTP billing abuse rokta hai. Jab tak > 0 hai,
+  /// koi naya OTP send nahi ho sakta (Resend + wapas jaa ke Send dono blocked).
+  static const int cooldownDuration = 60;
+  int _cooldownSeconds = 0;
+  Timer? _cooldownTimer;
+  int get resendSeconds => _cooldownSeconds;
+  bool get canSendOtp => _cooldownSeconds == 0 && !busy;
+
   AuthProvider() {
     try {
       _auth = FirebaseAuth.instance;
@@ -28,8 +38,24 @@ class AuthProvider extends ChangeNotifier {
   String? get uid => _auth?.currentUser?.uid;
   String? get userPhone => _auth?.currentUser?.phoneNumber;
 
+  void _startCooldown() {
+    _cooldownTimer?.cancel();
+    _cooldownSeconds = cooldownDuration;
+    notifyListeners();
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      _cooldownSeconds--;
+      if (_cooldownSeconds <= 0) {
+        _cooldownSeconds = 0;
+        t.cancel();
+      }
+      notifyListeners();
+    });
+  }
+
   Future<void> sendOtp(String phoneE164) async {
     if (_auth == null) return;
+    // Cooldown active → naya OTP send mat karo (billing protection).
+    if (_cooldownSeconds > 0) return;
     busy = true;
     error = null;
     phone = phoneE164;
@@ -56,6 +82,8 @@ class AuthProvider extends ChangeNotifier {
         _resendToken = resendToken;
         step = AuthStep.otpSent;
         busy = false;
+        // OTP actually gaya (billing) → resend cooldown shuru.
+        _startCooldown();
         notifyListeners();
       },
       codeAutoRetrievalTimeout: (String verificationId) {
@@ -99,16 +127,22 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  @override
+  void dispose() {
+    _cooldownTimer?.cancel();
+    super.dispose();
+  }
+
   String _friendly(FirebaseAuthException e) {
     switch (e.code) {
       case 'invalid-verification-code':
-        return 'Galat OTP — dobara try karo';
+        return 'Incorrect OTP — please try again';
       case 'invalid-phone-number':
-        return 'Phone number sahi nahi hai';
+        return 'That phone number is not valid';
       case 'too-many-requests':
-        return 'Bahut zyada attempts — thodi der baad try karo';
+        return 'Too many attempts — please try again later';
       case 'session-expired':
-        return 'OTP expire ho gaya — dobara bhejo';
+        return 'The OTP has expired — please resend';
       default:
         return e.message ?? 'Verification failed';
     }

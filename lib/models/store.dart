@@ -41,8 +41,8 @@ class Store {
       deliveryTimeMins: (json['deliveryTimeMins'] as num?)?.toInt() ?? 30,
       isOpen: (json['isOpen'] ?? true) as bool,
       isVeg: (json['isVeg'] ?? true) as bool,
-      lat: (json['lat'] as num?)?.toDouble() ?? AppConfig.userLat,
-      lng: (json['lng'] as num?)?.toDouble() ?? AppConfig.userLng,
+      lat: (json['lat'] as num?)?.toDouble() ?? AppConfig.fallbackLat,
+      lng: (json['lng'] as num?)?.toDouble() ?? AppConfig.fallbackLng,
       radiusKm: (json['radiusKm'] as num?)?.toDouble() ??
           AppConfig.defaultStoreRadiusKm,
     );

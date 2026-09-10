@@ -9,6 +9,7 @@ import '../../models/store.dart';
 import '../../providers/cart_provider.dart';
 import '../widgets/app_header.dart';
 import '../widgets/common.dart';
+import '../widgets/policy_footer.dart';
 import 'cart_screen.dart';
 
 /// Store detail — shows the store's menu grouped by category.
@@ -87,6 +88,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                       ],
                     ),
                   ),
+                  const PolicyFooter(),
                 ],
               );
             },
@@ -295,7 +297,7 @@ class _AddControl extends StatelessWidget {
     final cart = context.watch<CartProvider>();
 
     if (!item.hasMultipleVariants) {
-      final variant = item.variants.first;
+      final variant = item.sellableVariants.first;
       final qty = cart.quantityOf(item.id, variant.id);
       if (qty == 0) {
         return SizedBox(
@@ -327,7 +329,7 @@ class _AddControl extends StatelessWidget {
     }
 
     // Multiple variants → show total added, open picker.
-    final totalForItem = item.variants.fold<int>(
+    final totalForItem = item.sellableVariants.fold<int>(
       0,
       (sum, v) => sum + cart.quantityOf(item.id, v.id),
     );
@@ -402,7 +404,7 @@ class _VariantSheet extends StatelessWidget {
               style: TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.md),
-            for (final variant in item.variants)
+            for (final variant in item.sellableVariants)
               Consumer<CartProvider>(
                 builder: (context, cart, _) {
                   final qty = cart.quantityOf(item.id, variant.id);

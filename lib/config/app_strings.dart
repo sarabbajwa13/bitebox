@@ -13,6 +13,13 @@ class AppStrings {
       'We are expanding fast — check back soon!';
   static const String searchHint = 'Search stores or dishes';
 
+  // Location permission
+  static const String locationOffTitle = 'Location needed';
+  static const String locationOffSubtitle =
+      'We use your location to show stores that deliver to you. '
+      'Please allow location access and retry.';
+  static const String retry = 'Retry';
+
   // Store detail
   static const String menuTitle = 'Menu';
   static const String closedLabel = 'Closed';
@@ -51,11 +58,19 @@ class AppStrings {
   static const String verifyLogin = 'Verify & continue';
   static const String changeNumber = 'Change number';
   static const String resendOtp = 'Resend OTP';
+  static const String resendOtpIn = 'Resend in';
+  static const String otpCooldownNote = 'You can request a new OTP in';
   static const String logout = 'Logout';
 
   // Orders / history / tracking
   static const String myOrders = 'My orders';
   static const String orderHistoryTitle = 'Your orders';
+  static const String ordersLoginTitle = 'Login to see your orders';
+  static const String ordersLoginSubtitle =
+      'Sign in to view and track the orders you have placed';
+  static const String loginCta = 'Login';
+  static const String loginToOrderNote =
+      'Please login to place your order';
   static const String noOrdersTitle = 'No orders yet';
   static const String noOrdersSubtitle =
       'Your placed orders will appear here so you can track them';
@@ -63,9 +78,6 @@ class AppStrings {
   static const String orderStatusTitle = 'Order status';
   static const String orderRejectedNote =
       'This order was not accepted. Any amount, if paid, will be refunded.';
-  static const String demoAgentTitle = 'Demo: agent action';
-  static const String demoAgentSubtitle =
-      'Agent app abhi nahi bana — yahan se accept/reject simulate karke status dekho';
   static const String accept = 'Accept';
   static const String reject = 'Reject';
 

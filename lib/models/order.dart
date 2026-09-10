@@ -98,6 +98,11 @@ class CustomerOrder {
   final OrderStatus status;
   final DateTime statusUpdatedAt;
 
+  /// Delivery location (customer ne map pe select ki) + direction/landmark note.
+  final double? deliveryLat;
+  final double? deliveryLng;
+  final String deliveryDirection;
+
   const CustomerOrder({
     required this.id,
     required this.storeId,
@@ -110,9 +115,13 @@ class CustomerOrder {
     required this.createdAt,
     this.status = OrderStatus.pending,
     required this.statusUpdatedAt,
+    this.deliveryLat,
+    this.deliveryLng,
+    this.deliveryDirection = '',
   });
 
   int get totalQuantity => items.fold(0, (sum, e) => sum + e.quantity);
+  bool get hasLocation => deliveryLat != null && deliveryLng != null;
 
   Map<String, dynamic> toMap() => {
     'storeId': storeId,
@@ -125,6 +134,9 @@ class CustomerOrder {
     'status': status.name,
     'createdAt': createdAt.toIso8601String(),
     'statusUpdatedAt': statusUpdatedAt.toIso8601String(),
+    'deliveryLat': deliveryLat,
+    'deliveryLng': deliveryLng,
+    'deliveryDirection': deliveryDirection,
   };
 
   factory CustomerOrder.fromMap(String id, Map<String, dynamic> map) {
@@ -147,6 +159,9 @@ class CustomerOrder {
       statusUpdatedAt: _time(map['statusUpdatedAt']) ??
           _time(map['createdAt']) ??
           DateTime.now(),
+      deliveryLat: (map['deliveryLat'] as num?)?.toDouble(),
+      deliveryLng: (map['deliveryLng'] as num?)?.toDouble(),
+      deliveryDirection: (map['deliveryDirection'] ?? '') as String,
     );
   }
 

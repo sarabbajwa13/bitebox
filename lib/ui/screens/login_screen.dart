@@ -54,6 +54,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     final isOtp = auth.step == AuthStep.otpSent;
+    // Button tabhi enable: phone step me 10 digits, OTP step me 6 digits.
+    final canSubmit = isOtp
+        ? _otpCtrl.text.trim().length == AppConfig.otpLength
+        : _phoneCtrl.text.trim().length == AppConfig.phoneLength;
 
     return Scaffold(
       appBar: AppBar(
@@ -96,6 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       FilteringTextInputFormatter.digitsOnly,
                       LengthLimitingTextInputFormatter(AppConfig.phoneLength),
                     ],
+                    onChanged: (_) => setState(() {}),
                     onSubmitted: (_) => _sendOtp(),
                     decoration: const InputDecoration(
                       labelText: AppStrings.phoneNumber,
@@ -118,10 +123,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontWeight: FontWeight.w800,
                       letterSpacing: 8,
                     ),
+                    onChanged: (_) => setState(() {}),
                     onSubmitted: (_) => _verify(),
                     decoration: const InputDecoration(
                       labelText: AppStrings.otpLabel,
-                      hintText: '••••••',
                     ),
                   ),
 
@@ -137,9 +142,25 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
 
+                // Phone step pe cooldown active → note dikhao.
+                if (!isOtp && auth.resendSeconds > 0) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    '${AppStrings.otpCooldownNote} ${auth.resendSeconds}s',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.lg),
                 ElevatedButton(
-                  onPressed: auth.busy ? null : (isOtp ? _verify : _sendOtp),
+                  onPressed: (auth.busy || !canSubmit)
+                      ? null
+                      : isOtp
+                          ? _verify
+                          : (auth.canSendOtp ? _sendOtp : null),
                   child: auth.busy
                       ? const SizedBox(
                           height: 20,
@@ -169,12 +190,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: const Text(AppStrings.changeNumber),
                       ),
                       TextButton(
-                        onPressed: auth.busy
+                        onPressed: (auth.busy || auth.resendSeconds > 0)
                             ? null
                             : () => context
                                 .read<AuthProvider>()
                                 .sendOtp(auth.phone),
-                        child: const Text(AppStrings.resendOtp),
+                        child: Text(auth.resendSeconds > 0
+                            ? '${AppStrings.resendOtpIn} ${auth.resendSeconds}s'
+                            : AppStrings.resendOtp),
                       ),
                     ],
                   ),

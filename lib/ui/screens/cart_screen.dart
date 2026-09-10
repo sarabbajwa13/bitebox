@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,8 +14,10 @@ import '../../models/order.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/orders_provider.dart';
+import '../../providers/store_provider.dart';
 import '../widgets/app_header.dart';
 import '../widgets/common.dart';
+import '../widgets/delivery_location_picker.dart';
 import 'login_screen.dart';
 import 'order_success_screen.dart';
 
@@ -28,41 +31,75 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   static const String _kNameKey = 'customer_name';
+  static const String _kLatKey = 'delivery_lat';
+  static const String _kLngKey = 'delivery_lng';
+  static const String _kDirKey = 'delivery_direction';
 
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  final _directionCtrl = TextEditingController();
   bool _placing = false;
   bool _prefilled = false;
+
+  /// Map se select ki gayi delivery location.
+  LatLng? _deliveryLocation;
+  bool _prefsLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    _loadSavedName();
+    _loadSaved();
   }
 
-  /// Pichli baar enter kiya naam local storage se prefill (editable rahega).
+  /// Naam + delivery location + direction local storage se prefill.
   /// Kabhi throw nahi karega — storage fail ho to bas prefill nahi hoga.
-  Future<void> _loadSavedName() async {
+  Future<void> _loadSaved() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final name = prefs.getString(_kNameKey);
-      if (name != null &&
-          name.isNotEmpty &&
-          mounted &&
-          _nameCtrl.text.isEmpty) {
-        _nameCtrl.text = name;
-      }
+      final lat = prefs.getDouble(_kLatKey);
+      final lng = prefs.getDouble(_kLngKey);
+      final dir = prefs.getString(_kDirKey);
+      if (!mounted) return;
+      setState(() {
+        if (name != null && name.isNotEmpty && _nameCtrl.text.isEmpty) {
+          _nameCtrl.text = name;
+        }
+        if (dir != null && _directionCtrl.text.isEmpty) {
+          _directionCtrl.text = dir;
+        }
+        if (lat != null && lng != null && _deliveryLocation == null) {
+          _deliveryLocation = LatLng(lat, lng);
+        }
+        _prefsLoaded = true;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _prefsLoaded = true);
+    }
+  }
+
+  /// Naam type karte hi turant save — taaki agli baar (bina order complete kiye
+  /// bhi) prefill ho jaye. Fire-and-forget, kabhi throw nahi karega.
+  Future<void> _persistName(String name) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kNameKey, name.trim());
     } catch (_) {
       // storage unavailable — ignore.
     }
   }
 
-  /// Fire-and-forget: naam save karo, par order flow ko kabhi block/break na karo.
-  Future<void> _saveName(String name) async {
+  /// Fire-and-forget: naam + location + direction save (order flow block na kare).
+  Future<void> _saveDeliveryPrefs(String name) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_kNameKey, name);
+      await prefs.setString(_kDirKey, _directionCtrl.text.trim());
+      if (_deliveryLocation != null) {
+        await prefs.setDouble(_kLatKey, _deliveryLocation!.latitude);
+        await prefs.setDouble(_kLngKey, _deliveryLocation!.longitude);
+      }
     } catch (_) {
       // storage unavailable — ignore.
     }
@@ -72,6 +109,7 @@ class _CartScreenState extends State<CartScreen> {
   void dispose() {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
+    _directionCtrl.dispose();
     super.dispose();
   }
 
@@ -82,6 +120,20 @@ class _CartScreenState extends State<CartScreen> {
     if (phone != null && phone.isNotEmpty) {
       _phoneCtrl.text = phone.replaceFirst(AppConfig.countryCode, '');
       _prefilled = true;
+    }
+  }
+
+  /// Phone-OTP login. Success pe phone prefill + rebuild.
+  Future<void> _login() async {
+    final loggedIn = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+    if (loggedIn == true && mounted) {
+      final phone = context.read<AuthProvider>().userPhone;
+      if (phone != null && phone.isNotEmpty) {
+        _phoneCtrl.text = phone.replaceFirst(AppConfig.countryCode, '');
+      }
+      setState(() {});
     }
   }
 
@@ -106,6 +158,14 @@ class _CartScreenState extends State<CartScreen> {
     // Step 2: validate form
     if (!_formKey.currentState!.validate()) return;
 
+    // Delivery location zaroori hai.
+    if (_deliveryLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a delivery location')),
+      );
+      return;
+    }
+
     // Providers/context ko async gap se pehle capture kar lo.
     final cart = context.read<CartProvider>();
     final repo = context.read<DataRepository>();
@@ -115,8 +175,8 @@ class _CartScreenState extends State<CartScreen> {
 
     setState(() => _placing = true);
     try {
-      // Naam local storage me save — fire-and-forget (order ko block na kare).
-      unawaited(_saveName(_nameCtrl.text.trim()));
+      // Naam + location + direction local storage me save — fire-and-forget.
+      unawaited(_saveDeliveryPrefs(_nameCtrl.text.trim()));
 
       final now = DateTime.now();
       final order = CustomerOrder(
@@ -136,6 +196,9 @@ class _CartScreenState extends State<CartScreen> {
         total: cart.subtotal,
         createdAt: now,
         statusUpdatedAt: now,
+        deliveryLat: _deliveryLocation!.latitude,
+        deliveryLng: _deliveryLocation!.longitude,
+        deliveryDirection: _directionCtrl.text.trim(),
       );
 
       // Step 3: place order → Firestore
@@ -165,11 +228,12 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     _maybePrefill();
     final cart = context.watch<CartProvider>();
+    final loggedIn = context.watch<AuthProvider>().isLoggedIn;
 
     return Scaffold(
       appBar: const AppHeader(showBack: true, showCart: false),
       body: cart.isEmpty
-          ? const _EmptyCart()
+          ? _EmptyCart(loggedIn: loggedIn, onLogin: _login)
           : LayoutBuilder(
               builder: (context, constraints) {
                 final wide = constraints.maxWidth >= AppLayout.mobileBreakpoint;
@@ -203,6 +267,30 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  Widget _buildLocationPicker(CartProvider cart) {
+    if (!_prefsLoaded) {
+      return Container(
+        height: 240,
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    final store = context.read<StoreProvider>().byId(cart.storeId ?? '');
+    final storeLatLng = store != null
+        ? LatLng(store.lat, store.lng)
+        : const LatLng(AppConfig.fallbackLat, AppConfig.fallbackLng);
+    final radiusKm = store?.radiusKm ?? AppConfig.defaultStoreRadiusKm;
+    return DeliveryLocationPicker(
+      store: storeLatLng,
+      radiusKm: radiusKm,
+      initial: _deliveryLocation,
+      onChanged: (loc) => _deliveryLocation = loc,
+    );
+  }
+
   Widget _buildForm(CartProvider cart) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -224,6 +312,7 @@ class _CartScreenState extends State<CartScreen> {
             TextFormField(
               controller: _nameCtrl,
               textCapitalization: TextCapitalization.words,
+              onChanged: (v) => unawaited(_persistName(v)),
               decoration: const InputDecoration(
                 labelText: AppStrings.yourName,
                 prefixIcon: Icon(Icons.person_outline_rounded),
@@ -254,6 +343,30 @@ class _CartScreenState extends State<CartScreen> {
                 return null;
               },
             ),
+            const SizedBox(height: AppSpacing.lg),
+            const Text(
+              'Delivery location',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+            ),
+            const SizedBox(height: 2),
+            const Text(
+              'Move the map so the pin is on your location (within the store radius)',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            _buildLocationPicker(cart),
+            const SizedBox(height: AppSpacing.md),
+            TextFormField(
+              controller: _directionCtrl,
+              textCapitalization: TextCapitalization.sentences,
+              maxLines: 2,
+              minLines: 1,
+              decoration: const InputDecoration(
+                labelText: 'Direction / landmark (optional)',
+                hintText: 'e.g. Near the blue gate, 2nd floor',
+                prefixIcon: Icon(Icons.explore_outlined),
+              ),
+            ),
             const Divider(height: AppSpacing.xl),
             Row(
               children: [
@@ -272,19 +385,31 @@ class _CartScreenState extends State<CartScreen> {
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            ElevatedButton(
-              onPressed: _placing ? null : _onPlaceOrder,
-              child: _placing
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text(AppStrings.placeOrder),
-            ),
+            if (!context.watch<AuthProvider>().isLoggedIn) ...[
+              const Text(
+                AppStrings.loginToOrderNote,
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              ElevatedButton.icon(
+                onPressed: _login,
+                icon: const Icon(Icons.login_rounded, size: 18),
+                label: const Text(AppStrings.loginCta),
+              ),
+            ] else
+              ElevatedButton(
+                onPressed: _placing ? null : _onPlaceOrder,
+                child: _placing
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(AppStrings.placeOrder),
+              ),
           ],
         ),
       ),
@@ -377,7 +502,9 @@ class _CartList extends StatelessWidget {
 }
 
 class _EmptyCart extends StatelessWidget {
-  const _EmptyCart();
+  final bool loggedIn;
+  final VoidCallback onLogin;
+  const _EmptyCart({required this.loggedIn, required this.onLogin});
 
   @override
   Widget build(BuildContext context) {
@@ -402,11 +529,15 @@ class _EmptyCart extends StatelessWidget {
             AppStrings.emptyCartSubtitle,
             style: TextStyle(color: AppColors.textSecondary),
           ),
-          const SizedBox(height: AppSpacing.lg),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(AppStrings.continueShopping),
-          ),
+          // Logged out → login option (order screen jaisa solid button).
+          if (!loggedIn) ...[
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton.icon(
+              onPressed: onLogin,
+              icon: const Icon(Icons.login_rounded, size: 18),
+              label: const Text(AppStrings.loginCta),
+            ),
+          ],
         ],
       ),
     );

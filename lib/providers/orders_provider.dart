@@ -44,11 +44,15 @@ class OrdersProvider extends ChangeNotifier {
     });
   }
 
+  /// Logout pe call hota hai — stream band + list clear + UI ko turant notify
+  /// (warna purane orders refresh tak dikhte rehte the).
   void stop() {
     _sub?.cancel();
     _sub = null;
     _customerId = null;
+    _loading = false;
     _orders = [];
+    notifyListeners();
   }
 
   @override

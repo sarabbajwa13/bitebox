@@ -24,6 +24,9 @@ class MenuItem {
   final String imageUrl;
   final String category;
   final bool isVeg;
+
+  /// Base price — bina variant ke item isi price pe bikta hai.
+  final double price;
   final List<Variant> variants;
 
   const MenuItem({
@@ -34,18 +37,31 @@ class MenuItem {
     required this.imageUrl,
     required this.category,
     required this.isVeg,
+    required this.price,
     required this.variants,
   });
 
-  /// Lowest variant price — used for "from ₹X" display.
-  double get startingPrice => variants.isEmpty
-      ? 0
-      : variants.map((v) => v.price).reduce((a, b) => a < b ? a : b);
+  /// Cart/order me daalne yogya variants. Agar agent ne koi variant nahi diya
+  /// to ek default variant banate hain (item ke naam + base price se) — taaki
+  /// baaki flow (cart, order) same rahe aur customer ko item ka naam dikhe.
+  List<Variant> get sellableVariants => variants.isNotEmpty
+      ? variants
+      : [Variant(id: 'default', name: name, price: price)];
 
-  bool get hasMultipleVariants => variants.length > 1;
+  /// Lowest sellable price — used for "from ₹X" display.
+  double get startingPrice =>
+      sellableVariants.map((v) => v.price).reduce((a, b) => a < b ? a : b);
+
+  bool get hasMultipleVariants => sellableVariants.length > 1;
 
   /// Firestore `products` document → MenuItem.
   factory MenuItem.fromMap(String id, Map<String, dynamic> json) {
+    final variants = ((json['variants'] as List<dynamic>?) ?? [])
+        .map((v) => Variant.fromJson(v as Map<String, dynamic>))
+        .toList();
+    // Backward-compat: purane products me base price nahi tha.
+    final basePrice = (json['price'] as num?)?.toDouble() ??
+        (variants.isNotEmpty ? variants.first.price : 0);
     return MenuItem(
       id: id,
       storeId: (json['storeId'] ?? '') as String,
@@ -54,9 +70,8 @@ class MenuItem {
       imageUrl: (json['imageUrl'] ?? '') as String,
       category: (json['category'] ?? 'Snacks') as String,
       isVeg: (json['isVeg'] ?? true) as bool,
-      variants: ((json['variants'] as List<dynamic>?) ?? [])
-          .map((v) => Variant.fromJson(v as Map<String, dynamic>))
-          .toList(),
+      price: basePrice,
+      variants: variants,
     );
   }
 }

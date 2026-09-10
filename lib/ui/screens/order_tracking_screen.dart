@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
 import '../../config/app_strings.dart';
@@ -8,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/orders_provider.dart';
 import '../widgets/app_header.dart';
 import '../widgets/common.dart';
+import '../widgets/delivery_location_picker.dart';
 
 /// Live order status tracker with a vertical progress timeline (Firestore
 /// real-time — agent ke status update pe live badalta hai).
@@ -54,6 +56,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       _StatusCard(order: order),
                       const SizedBox(height: AppSpacing.lg),
                       _ItemsCard(order: order),
+                      if (order.hasLocation) ...[
+                        const SizedBox(height: AppSpacing.lg),
+                        _DeliveryCard(order: order),
+                      ],
                     ],
                   ),
                 ),
@@ -305,6 +311,56 @@ class _ItemsCard extends StatelessWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeliveryCard extends StatelessWidget {
+  final CustomerOrder order;
+  const _DeliveryCard({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.location_on_rounded,
+                  size: 18, color: AppColors.danger),
+              SizedBox(width: 6),
+              Text(
+                'Delivery location',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          LocationMapPreview(
+            location: LatLng(order.deliveryLat!, order.deliveryLng!),
+          ),
+          if (order.deliveryDirection.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.explore_outlined,
+                    size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    order.deliveryDirection,
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
