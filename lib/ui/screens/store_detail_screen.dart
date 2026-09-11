@@ -8,6 +8,7 @@ import '../../models/menu_item.dart';
 import '../../models/store.dart';
 import '../../providers/cart_provider.dart';
 import '../widgets/app_header.dart';
+import '../widgets/cart_fly.dart';
 import '../widgets/common.dart';
 import '../widgets/policy_footer.dart';
 import 'cart_screen.dart';
@@ -33,6 +34,9 @@ class StoreDetailScreen extends StatefulWidget {
 class _StoreDetailScreenState extends State<StoreDetailScreen> {
   late Future<List<MenuItem>> _menuFuture;
 
+  /// Fly-to-cart animation ka target (header ke cart icon pe attach).
+  final GlobalKey _cartKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -44,11 +48,13 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppHeader(showBack: !widget.isHome),
+      appBar: AppHeader(showBack: !widget.isHome, cartIconKey: _cartKey),
       // Cart bar ko Stack me floating overlay rakha hai (bottomNavigationBar
       // nahi) — warna Flutter web pe empty→visible toggle hone par Scaffold
       // re-layout se body blank ho jaati thi.
-      body: Stack(
+      body: CartFlyTarget(
+        cartKey: _cartKey,
+        child: Stack(
         children: [
           FutureBuilder<List<MenuItem>>(
             future: _menuFuture,
@@ -100,6 +106,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
             child: _CartBar(),
           ),
         ],
+        ),
       ),
     );
   }
@@ -209,13 +216,33 @@ class _CategorySection extends StatelessWidget {
   }
 }
 
-class _MenuItemCard extends StatelessWidget {
+class _MenuItemCard extends StatefulWidget {
   final MenuItem item;
   final String storeName;
   const _MenuItemCard({required this.item, required this.storeName});
 
   @override
+  State<_MenuItemCard> createState() => _MenuItemCardState();
+}
+
+class _MenuItemCardState extends State<_MenuItemCard> {
+  /// Fly-to-cart animation ka source (is item ki image).
+  final GlobalKey _imgKey = GlobalKey();
+
+  void _fly() {
+    final target = CartFlyTarget.maybeOf(context);
+    if (target == null) return;
+    flyToCart(
+      context: context,
+      sourceKey: _imgKey,
+      cartKey: target.cartKey,
+      imageUrl: widget.item.imageUrl,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final item = widget.item;
     return GestureDetector(
       // Tile ya image pe tap → image full-size center me.
       onTap: () => showFullImage(context, item.imageUrl),
@@ -274,9 +301,18 @@ class _MenuItemCard extends StatelessWidget {
             const SizedBox(width: AppSpacing.md),
             Column(
               children: [
-                SafeImage(url: item.imageUrl, width: 110, height: 90),
+                SafeImage(
+                  key: _imgKey,
+                  url: item.imageUrl,
+                  width: 110,
+                  height: 90,
+                ),
                 const SizedBox(height: 8),
-                _AddControl(item: item, storeName: storeName),
+                _AddControl(
+                  item: item,
+                  storeName: widget.storeName,
+                  onFly: _fly,
+                ),
               ],
             ),
           ],
@@ -290,7 +326,14 @@ class _MenuItemCard extends StatelessWidget {
 class _AddControl extends StatelessWidget {
   final MenuItem item;
   final String storeName;
-  const _AddControl({required this.item, required this.storeName});
+
+  /// Add/plus dabne par fly-to-cart animation chalane ke liye.
+  final VoidCallback onFly;
+  const _AddControl({
+    required this.item,
+    required this.storeName,
+    required this.onFly,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -311,8 +354,10 @@ class _AddControl extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
             ),
-            onPressed: () =>
-                context.read<CartProvider>().add(item, variant, storeName),
+            onPressed: () {
+              onFly();
+              context.read<CartProvider>().add(item, variant, storeName);
+            },
             child: const Text(
               AppStrings.addToCart,
               style: TextStyle(fontWeight: FontWeight.w800),
@@ -322,8 +367,10 @@ class _AddControl extends StatelessWidget {
       }
       return QuantityStepper(
         quantity: qty,
-        onAdd: () =>
-            context.read<CartProvider>().add(item, variant, storeName),
+        onAdd: () {
+          onFly();
+          context.read<CartProvider>().add(item, variant, storeName);
+        },
         onRemove: () => context.read<CartProvider>().decrement(item, variant),
       );
     }

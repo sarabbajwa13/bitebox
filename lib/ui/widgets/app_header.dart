@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../screens/cart_screen.dart';
 import '../screens/order_history_screen.dart';
+import 'cart_fly.dart';
 import 'common.dart';
 
 /// Top branding bar shown on every screen. Includes cart + auth state.
@@ -15,11 +16,15 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   final bool showCart;
   final bool showBack;
   final VoidCallback? onLogoTap;
+
+  /// Fly-to-cart animation ka target — cart icon pe attach hota hai.
+  final GlobalKey? cartIconKey;
   const AppHeader({
     super.key,
     this.showCart = true,
     this.showBack = false,
     this.onLogoTap,
+    this.cartIconKey,
   });
 
   @override
@@ -55,7 +60,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                   _Logo(onTap: onLogoTap),
                   const Spacer(),
                   if (showCart) const _OrdersButton(),
-                  if (showCart) const _CartButton(),
+                  if (showCart) _CartButton(iconKey: cartIconKey),
                   const _LogoutButton(),
                 ],
               ),
@@ -115,46 +120,90 @@ class _OrdersButton extends StatelessWidget {
   }
 }
 
-class _CartButton extends StatelessWidget {
-  const _CartButton();
+class _CartButton extends StatefulWidget {
+  final GlobalKey? iconKey;
+  const _CartButton({this.iconKey});
+
+  @override
+  State<_CartButton> createState() => _CartButtonState();
+}
+
+class _CartButtonState extends State<_CartButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _bump = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  );
+  late final Animation<double> _scale = TweenSequence<double>([
+    TweenSequenceItem(
+      tween: Tween(begin: 1.0, end: 1.35)
+          .chain(CurveTween(curve: Curves.easeOut)),
+      weight: 45,
+    ),
+    TweenSequenceItem(
+      tween: Tween(begin: 1.35, end: 1.0)
+          .chain(CurveTween(curve: Curves.elasticIn)),
+      weight: 55,
+    ),
+  ]).animate(_bump);
+
+  void _onBump() {
+    if (mounted) _bump.forward(from: 0);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    cartBumpNotifier.addListener(_onBump);
+  }
+
+  @override
+  void dispose() {
+    cartBumpNotifier.removeListener(_onBump);
+    _bump.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final count = context.watch<CartProvider>().totalQuantity;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        IconButton(
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const CartScreen()),
+    return ScaleTransition(
+      scale: _scale,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CartScreen()),
+            ),
+            icon: Icon(Icons.shopping_bag_outlined, key: widget.iconKey),
+            color: AppColors.textPrimary,
+            tooltip: AppStrings.cartTitle,
           ),
-          icon: const Icon(Icons.shopping_bag_outlined),
-          color: AppColors.textPrimary,
-          tooltip: AppStrings.cartTitle,
-        ),
-        if (count > 0)
-          Positioned(
-            right: 4,
-            top: 4,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-              ),
-              child: Text(
-                '$count',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
+          if (count > 0)
+            Positioned(
+              right: 4,
+              top: 4,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$count',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
