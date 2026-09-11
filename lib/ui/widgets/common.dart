@@ -34,13 +34,57 @@ String formatPrice(num value) {
 
 /// Full-screen image viewer — image center me bada, upar center me cross icon.
 /// Pinch/drag se zoom bhi ho sakta hai.
-void showFullImage(BuildContext context, String url) {
+/// Full-size image view. [heroTag] do to image thumbnail se "grow" hoke khulti
+/// hai aur close pe wapas thumbnail me "shrink" ho jaati hai (Hero animation).
+///
+/// NOTE: Hero sirf PageRoute ke beech animate karta hai — isliye yahan
+/// transparent [PageRouteBuilder] use kiya hai (showDialog/PopupRoute pe Hero
+/// nahi chalta).
+void showFullImage(BuildContext context, String url, {Object? heroTag}) {
   if (url.trim().isEmpty) return;
-  showDialog<void>(
-    context: context,
-    barrierColor: Colors.black.withValues(alpha: 0.88),
-    builder: (ctx) {
-      final size = MediaQuery.of(ctx).size;
+  Navigator.of(context).push(
+    PageRouteBuilder<void>(
+      opaque: false,
+      barrierDismissible: true,
+      barrierLabel: 'image',
+      barrierColor: Colors.black.withValues(alpha: 0.88),
+      transitionDuration: const Duration(milliseconds: 340),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      transitionsBuilder: (ctx, anim, _, child) {
+        // Barrier + cross fade; image khud Hero se fly karti hai.
+        return FadeTransition(
+          opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+          child: child,
+        );
+      },
+      pageBuilder: (ctx, _, _) {
+        final size = MediaQuery.of(ctx).size;
+      Widget image = ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: InteractiveViewer(
+          child: Image.network(
+            url,
+            fit: BoxFit.contain,
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return const Padding(
+                padding: EdgeInsets.all(40),
+                child: CircularProgressIndicator(color: Colors.white),
+              );
+            },
+            errorBuilder: (_, _, _) => const Padding(
+              padding: EdgeInsets.all(40),
+              child: Text(
+                'Image not available',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        ),
+      );
+      if (heroTag != null) {
+        image = Hero(tag: heroTag, child: image);
+      }
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -66,37 +110,14 @@ void showFullImage(BuildContext context, String url) {
                   maxWidth: size.width * 0.92,
                   maxHeight: size.height * 0.75,
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  child: InteractiveViewer(
-                    child: Image.network(
-                      url,
-                      fit: BoxFit.contain,
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return const Padding(
-                          padding: EdgeInsets.all(40),
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                          ),
-                        );
-                      },
-                      errorBuilder: (_, _, _) => const Padding(
-                        padding: EdgeInsets.all(40),
-                        child: Text(
-                          'Image not available',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                child: image,
               ),
             ),
           ],
         ),
       );
     },
+    ),
   );
 }
 

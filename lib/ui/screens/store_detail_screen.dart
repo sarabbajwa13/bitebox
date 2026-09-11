@@ -243,10 +243,8 @@ class _MenuItemCardState extends State<_MenuItemCard> {
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
-    return GestureDetector(
-      // Tile ya image pe tap → image full-size center me.
-      onTap: () => showFullImage(context, item.imageUrl),
-      child: Container(
+    final heroTag = 'menu-img-${item.id}';
+    return Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.md),
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
@@ -278,6 +276,15 @@ class _MenuItemCardState extends State<_MenuItemCard> {
                 ),
                 const SizedBox(height: 4),
                 Text(
+                  item.description,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
                   item.hasMultipleVariants
                       ? 'From ${formatPrice(item.startingPrice)}'
                       : formatPrice(item.startingPrice),
@@ -286,26 +293,25 @@ class _MenuItemCardState extends State<_MenuItemCard> {
                     color: AppColors.primaryDark,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  item.description,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 13,
-                    height: 1.35,
-                  ),
-                ),
               ],
             ),
           ),
             const SizedBox(width: AppSpacing.md),
             Column(
               children: [
-                SafeImage(
-                  key: _imgKey,
-                  url: item.imageUrl,
-                  width: 110,
-                  height: 90,
+                GestureDetector(
+                  // Sirf image pe tap → full-size (thumbnail se grow hoke).
+                  onTap: () =>
+                      showFullImage(context, item.imageUrl, heroTag: heroTag),
+                  child: Hero(
+                    tag: heroTag,
+                    child: SafeImage(
+                      key: _imgKey,
+                      url: item.imageUrl,
+                      width: 110,
+                      height: 90,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 _AddControl(
@@ -317,8 +323,7 @@ class _MenuItemCardState extends State<_MenuItemCard> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }
 
