@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
+// import 'package:latlong2/latlong.dart'; // delivery location hidden
 import 'package:provider/provider.dart';
 
 import '../../config/app_strings.dart';
@@ -9,7 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/orders_provider.dart';
 import '../widgets/app_header.dart';
 import '../widgets/common.dart';
-import '../widgets/delivery_location_picker.dart';
+// import '../widgets/delivery_location_picker.dart'; // delivery location hidden
 
 /// Live order status tracker with a vertical progress timeline (Firestore
 /// real-time — agent ke status update pe live badalta hai).
@@ -56,10 +56,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       _StatusCard(order: order),
                       const SizedBox(height: AppSpacing.lg),
                       _ItemsCard(order: order),
-                      if (order.hasLocation) ...[
-                        const SizedBox(height: AppSpacing.lg),
-                        _DeliveryCard(order: order),
-                      ],
+                      // Delivery location section (user ke request pe hidden).
+                      // if (order.hasLocation) ...[
+                      //   const SizedBox(height: AppSpacing.lg),
+                      //   _DeliveryCard(order: order),
+                      // ],
                     ],
                   ),
                 ),
@@ -317,6 +318,10 @@ class _ItemsCard extends StatelessWidget {
   }
 }
 
+// Delivery location card — user ke request pe hidden. Wapas chahiye to is class
+// aur upar wale usage + imports (latlong2, delivery_location_picker) ko uncomment
+// kar do.
+/*
 class _DeliveryCard extends StatelessWidget {
   final CustomerOrder order;
   const _DeliveryCard({required this.order});
@@ -366,6 +371,7 @@ class _DeliveryCard extends StatelessWidget {
     );
   }
 }
+*/
 
 BoxDecoration _cardDecoration() => BoxDecoration(
   color: AppColors.surface,
