@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../config/app_config.dart';
 import '../../config/app_theme.dart';
@@ -31,6 +32,10 @@ String formatPrice(num value) {
       : value.toStringAsFixed(2);
   return '${AppConfig.currencySymbol}$s';
 }
+
+/// Proper date + time (e.g. "21 Sep 2026, 9:41 PM").
+String formatDateTime(DateTime time) =>
+    DateFormat('d MMM yyyy, h:mm a').format(time.toLocal());
 
 /// Full-screen image viewer — image center me bada, upar center me cross icon.
 /// Pinch/drag se zoom bhi ho sakta hai.

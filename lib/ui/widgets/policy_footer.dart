@@ -16,10 +16,11 @@ class PolicyFooter extends StatelessWidget {
     _PolicyLink('Contact Us', 'contact.html'),
   ];
 
-  Future<void> _open(String file) async {
-    // App root ke relative — biteboxa.web.app/<file>.
-    final uri = Uri.base.resolve(file);
-    await launchUrl(uri, webOnlyWindowName: '_blank');
+  void _open(String file) {
+    // App root ke relative — biteboxa.web.app/<file>. Same tab me kholte hain
+    // (`_self`) — new-tab/window.open real domain pe popup-block ho jata hai.
+    // Sync call (koi await nahi) taaki user-gesture bana rahe.
+    launchUrl(Uri.base.resolve(file), webOnlyWindowName: '_self');
   }
 
   @override

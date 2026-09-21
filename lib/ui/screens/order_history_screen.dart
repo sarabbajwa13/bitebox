@@ -137,6 +137,21 @@ class _OrderCard extends StatelessWidget {
                     fontSize: 13,
                   ),
                 ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    const Icon(Icons.schedule_rounded,
+                        size: 13, color: AppColors.textSecondary),
+                    const SizedBox(width: 4),
+                    Text(
+                      formatDateTime(order.createdAt),
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [

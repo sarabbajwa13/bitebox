@@ -97,6 +97,21 @@ class _Header extends StatelessWidget {
           'Order #${order.orderNumber} · ${order.storeName}',
           style: const TextStyle(color: AppColors.textSecondary),
         ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            const Icon(Icons.schedule_rounded,
+                size: 14, color: AppColors.textSecondary),
+            const SizedBox(width: 4),
+            Text(
+              formatDateTime(order.createdAt),
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
