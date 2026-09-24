@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:web/web.dart' as web;
 
 import '../../config/app_theme.dart';
 import 'common.dart';
@@ -17,10 +17,19 @@ class PolicyFooter extends StatelessWidget {
   ];
 
   void _open(String file) {
-    // App root ke relative — biteboxa.web.app/<file>. Same tab me kholte hain
-    // (`_self`) — new-tab/window.open real domain pe popup-block ho jata hai.
-    // Sync call (koi await nahi) taaki user-gesture bana rahe.
-    launchUrl(Uri.base.resolve(file), webOnlyWindowName: '_self');
+    // url_launcher release build pe reliably kaam nahi kar raha tha — isliye
+    // seedha ek <a target="_blank"> anchor bana ke click karte hain. Ye browser
+    // ki asli navigation hai (gesture ke andar), popup-block nahi hoti aur live
+    // domain pe bhi pakka chalti hai.
+    final url = Uri.base.resolve(file).toString();
+    final anchor = web.HTMLAnchorElement()
+      ..href = url
+      ..target = '_blank'
+      ..rel = 'noopener noreferrer'
+      ..style.display = 'none';
+    web.document.body?.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
   }
 
   @override

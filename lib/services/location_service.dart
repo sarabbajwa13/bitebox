@@ -1,31 +1,61 @@
 import 'dart:math';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/store.dart';
 import 'geo_utils.dart';
 
 /// Handles user location + radius-based store visibility.
 ///
 /// Ab **real GPS** use hoti hai ([fetchCurrentLocation] browser/device se
-/// location leta hai). Location milne tak / deny hone par [hasLocation] false
-/// rehta hai aur koi store visible nahi hota (radius restriction sach me lagti
-/// hai). Filtering logic (Haversine) same hai.
+/// location leta hai). Ek baar mili location localStorage me **cache** hoti hai
+/// ([loadCachedLocation]) — taaki har refresh pe dobara GPS prompt na aaye.
+/// Location deny hone par [hasLocation] false rehta hai aur koi store visible
+/// nahi hota. Filtering logic (Haversine) same hai.
 class LocationService {
+  static const String _kLat = 'loc_lat';
+  static const String _kLng = 'loc_lng';
+
   double? _lat;
   double? _lng;
 
   double? get currentLat => _lat;
   double? get currentLng => _lng;
 
-  /// True jab tak real location fetch na ho jaye.
+  /// True jab location maujood ho (cached ya fresh).
   bool get hasLocation => _lat != null && _lng != null;
 
-  /// Real GPS location fetch karo. Success → true, deny/error → false.
+  /// Pehle cache ki gayi location load karo (koi GPS prompt nahi). Mili → true.
+  Future<bool> loadCachedLocation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final la = prefs.getDouble(_kLat);
+      final ln = prefs.getDouble(_kLng);
+      if (la != null && ln != null) {
+        _lat = la;
+        _lng = ln;
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  /// Real GPS location fetch karo (prompt aa sakta hai). Success pe cache bhi.
   Future<bool> fetchCurrentLocation() async {
     final loc = await GeoUtils.getCurrentLocation();
     if (loc == null) return false;
     _lat = loc.latitude;
     _lng = loc.longitude;
+    _cache();
     return true;
+  }
+
+  Future<void> _cache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(_kLat, _lat!);
+      await prefs.setDouble(_kLng, _lng!);
+    } catch (_) {}
   }
 
   /// Great-circle distance (km) between two lat/lng points (Haversine).

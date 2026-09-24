@@ -371,6 +371,7 @@ class _AddControl extends StatelessWidget {
         );
       }
       return QuantityStepper(
+        width: 110,
         quantity: qty,
         onAdd: () {
           onFly();

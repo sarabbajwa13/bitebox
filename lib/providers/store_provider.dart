@@ -45,15 +45,22 @@ class StoreProvider extends ChangeNotifier {
   double distanceToStore(Store store) =>
       locationService.distanceToStore(store);
 
-  Future<void> loadStores() async {
+  /// [forceFresh] true (pull-to-refresh / retry) → fresh GPS (prompt aa sakta
+  /// hai). false (normal load / refresh) → pehle cached location use karo taaki
+  /// har baar GPS prompt na aaye; cache na ho to hi GPS maango.
+  Future<void> loadStores({bool forceFresh = false}) async {
     _loading = true;
     _error = null;
     notifyListeners();
     try {
-      // Real GPS fetch — isi ke radius ke andar wale stores hi dikhenge.
-      final gotLocation = await locationService.fetchCurrentLocation();
-      _locationDenied = !gotLocation;
-      locationError = gotLocation ? null : GeoUtils.lastError;
+      if (forceFresh) {
+        await locationService.fetchCurrentLocation();
+      } else if (!locationService.hasLocation) {
+        final cached = await locationService.loadCachedLocation();
+        if (!cached) await locationService.fetchCurrentLocation();
+      }
+      _locationDenied = !locationService.hasLocation;
+      locationError = locationService.hasLocation ? null : GeoUtils.lastError;
       _allStores = await repository.getStores();
       _visibleStores =
           locationService.visibleStoresSortedByDistance(_allStores);
@@ -66,9 +73,9 @@ class StoreProvider extends ChangeNotifier {
     }
   }
 
-  /// Pull-to-refresh / retry — location dubara fetch karke reload.
+  /// Pull-to-refresh / retry — fresh GPS (yahin prompt aata hai, refresh pe nahi).
   Future<void> reload() async {
     _hasLoaded = false;
-    await loadStores();
+    await loadStores(forceFresh: true);
   }
 }

@@ -285,38 +285,44 @@ class QuantityStepper extends StatelessWidget {
   final int quantity;
   final VoidCallback onAdd;
   final VoidCallback onRemove;
+
+  /// Fixed width do to stepper fill karega (buttons kinaron pe, tap aasaan).
+  /// null → compact (content jitna).
+  final double? width;
   const QuantityStepper({
     super.key,
     required this.quantity,
     required this.onAdd,
     required this.onRemove,
+    this.width,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _iconBtn(Icons.remove_rounded, onRemove),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
+    return SizedBox(
+      width: width,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          mainAxisSize: width == null ? MainAxisSize.min : MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _iconBtn(Icons.remove_rounded, onRemove),
+            Text(
               '$quantity',
               style: const TextStyle(
                 fontWeight: FontWeight.w800,
                 color: AppColors.primaryDark,
-                fontSize: 15,
+                fontSize: 16,
               ),
             ),
-          ),
-          _iconBtn(Icons.add_rounded, onAdd),
-        ],
+            _iconBtn(Icons.add_rounded, onAdd),
+          ],
+        ),
       ),
     );
   }
@@ -326,8 +332,9 @@ class QuantityStepper extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Icon(icon, size: 18, color: AppColors.primaryDark),
+        // Bada tap target — finger se tap aasaan.
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        child: Icon(icon, size: 20, color: AppColors.primaryDark),
       ),
     );
   }
