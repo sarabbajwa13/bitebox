@@ -13,6 +13,7 @@ class PolicyFooter extends StatelessWidget {
     _PolicyLink('Terms & Conditions', 'terms.html'),
     _PolicyLink('Privacy Policy', 'privacy.html'),
     _PolicyLink('Cancellation & Refund', 'refund.html'),
+    _PolicyLink('Shipping & Delivery', 'delivery.html'),
     _PolicyLink('Contact Us', 'contact.html'),
   ];
 
